@@ -48,7 +48,7 @@ def test_command(cmd):
     try:
         subprocess.run(cmd, capture_output=True)
     except FileNotFoundError as error:
-        logging.error(f"ERROR: '{cmd[0]}' not found. Please install it.")
+        logging.error(f"ERRO: '{cmd[0]}' nao encontrado. Por favor instale-o.")
         raise error
 
 def file_type(path):
@@ -99,7 +99,7 @@ def get_framecount(path):
 
 
 def build_output_video(video_handler: VideoHandler, matcher):
-    logging.info("building output video")
+    logging.info("processando video final")
     
     def tesselate_composite(match_row, basis_coefficients, i):
         tiles: List[Image.Image] = []
@@ -196,7 +196,7 @@ def process(carrier_path, modulator_path, output_path, custom_frame_length, matc
         output_is_audio = is_audio_filename(output_path)
         carrier_is_video = not output_is_audio
 
-        logging.info("Calculating video length")
+        logging.info("Calculando comprimento do video")
         
         carrier_framecount = float(get_framecount(carrier_path))
         video_frame_length = carrier_duration / carrier_framecount
@@ -206,7 +206,7 @@ def process(carrier_path, modulator_path, output_path, custom_frame_length, matc
             frame_length = float(custom_frame_length)
 
         if not output_is_audio and not video_in_mem:
-            logging.info("Separating video frames")
+            logging.info("Separando frames do video")
             frames_dir = TEMP_DIR / 'frames'
             frames_dir.mkdir()
 
@@ -228,20 +228,20 @@ def process(carrier_path, modulator_path, output_path, custom_frame_length, matc
         else:
             frame_length = float(custom_frame_length)
     else:
-        logging.error(f"Unrecognized file type: {carrier_path}. Should be audio or video")
+        logging.error(f"Mano, o que caralhos e isso?: {carrier_path}. Precisa ser um audio ou video")
         return
 
     if not (('video' in modulator_type) or ('audio' in modulator_type)):
-        logging.error(f"Unrecognized file type: {modulator_path}. Should be audio or video")
+        logging.error(f"Mano, o que caralhos e isso?: {modulator_path}. Precisa ser um audio ou video")
         return
     frame_length = min(frame_length, carrier_duration / 3)
     frame_length = min(frame_length, modulator_duration / 3)
-    logging.info("reading audio")
+    logging.info("lendo audio")
     _, carrier_audio = wavfile.read(get_audio_as_wav_bytes(carrier_path))
     _, modulator_audio = wavfile.read(get_audio_as_wav_bytes(modulator_path))
 
 
-    logging.info("analyzing audio")
+    logging.info("analizando audio")
     if matcher_mode == "basic":
         matcher = BasicAudioMatcher(carrier_audio, modulator_audio, INTERNAL_SAMPLERATE, frame_length)
     elif matcher_mode == "combination":
@@ -249,7 +249,7 @@ def process(carrier_path, modulator_path, output_path, custom_frame_length, matc
     elif matcher_mode == "unique":
         matcher = UniqueAudioMatcher(carrier_audio, modulator_audio, INTERNAL_SAMPLERATE, frame_length)
 
-    logging.info("creating output audio")
+    logging.info("creando audio final")
     matcher.make_output_audio(TEMP_DIR / 'out.wav')
 
     if carrier_is_video:
@@ -280,9 +280,9 @@ def main():
     test_command(['ffprobe', '-version'])
     
     parser = ArgumentParser()
-    parser.add_argument('carrier_path', type=Path, metavar='carrier_track', help='path to an audio or video file that frames will be taken from')
-    parser.add_argument('modulator_path', type=Path, metavar='modulator_track', help='path to an audio or video file that will be reconstructed using the carrier track')
-    parser.add_argument('output_path', type=Path, metavar='output_file', help='path to file that will be written to; should have an audio or video file extension (such as .wav, .mp3, .mp4, etc.)')
+    parser.add_argument('carrier_path', type=Path, metavar='carrier_track', help='caminho para o arquivo de audio ou video que os frames serão arrancados')
+    parser.add_argument('modulator_path', type=Path, metavar='modulator_track', help='caminho para o audio ou video que sera reconstruido')
+    parser.add_argument('output_path', type=Path, metavar='output_file', help='caminho para aonde o video final deve estar, deve conter a extensao de arquivos (como.wav, .mp3, .mp4, etc.)')
     parser.add_argument('--custom-frame-length', '-f', help='uses this number as frame length, in seconds. defaults to 0.04 seconds (1/25th of a second) for audio, or the real frame rate for video')
     parser.add_argument('-vm', '--video_mode', choices=('disk', 'mem_decay'), default='disk', help='How STAMMER will store video frames internally.\
                         disk: Copy all frames to temp directory.\
